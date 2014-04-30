@@ -1,0 +1,136 @@
+#!/usr/bin/env python2
+
+"""kbleds - control keyboard leds
+
+Usage: kbleds [options] [tty]
+
+Options:
+  --help          print help
+
+  -h, --human-readable
+                  print current state of leds in human readable form.
+
+  -l, --leds=LEDS set the state of some or all leds.
+                  LEDS is a string [s|S][n|N][c|C]:
+                    s - scroll lock off
+                    S - scroll lock on
+                    n - num lock off
+                    N - num lock on
+                    c - caps lock off
+                    C - caps lock on
+                  or an integer with a bit for each led:
+                  scroll lock (LSB), num lock, caps lock.
+
+  -o, --order=NCS set bit order for integers in user input/output.
+                  The status is "raw", that is, use the same
+                  bit order as hardware. If keyboard has lights
+                  in "num, caps, scroll" order,
+                    kbleds -o ncs -l 1
+                  lights up the numlock led.
+"""
+
+import kbleds
+import getopt
+import sys
+
+def error(msg):
+    sys.stderr.write("kbleds: %s\n" % (msg,))
+    sys.exit(1)
+
+if __name__ == "__main__":
+    opt_print_state = True
+    opt_human_readable = False
+    opt_new_state = None
+    opt_numlock = None
+    opt_capslock = None
+    opt_scrolllock = None
+    opt_bit_order = "raw"
+
+    try:
+        opts, remainder = getopt.getopt(
+            sys.argv[1:],
+            "hl:o:",
+            ["help", "human-readable", "leds=", "order="])
+    except getopt.GetoptError, e:
+        error(e)
+
+    for opt, arg in opts:
+        if opt in ["--help"]:
+            print __doc__
+            sys.exit(0)
+        elif opt in ["-h", "--human-readable"]:
+            opt_human_readable = True
+        elif opt in ["-l", "--leds"]:
+            opt_print_state = False
+            try:
+                opt_new_state = int(arg)
+            except ValueError:
+                if "n" in arg:
+                    opt_numlock = 0
+                if "N" in arg:
+                    opt_numlock = 1
+                if "s" in arg:
+                    opt_scrolllock = 0
+                if "S" in arg:
+                    opt_scrolllock = 1
+                if "c" in arg:
+                    opt_capslock = 0
+                if "C" in arg:
+                    opt_capslock = 1
+        elif opt in ["-o", "--order"]:
+            opt_bit_order = arg.lower()
+            try:
+                USER_SCR_BIT = opt_bit_order.index("s")
+                USER_NUM_BIT = opt_bit_order.index("n")
+                USER_CAP_BIT = opt_bit_order.index("c")
+            except ValueError:
+                error("order must include letters c, n and s.")
+            USER_SCR = 1 << USER_SCR_BIT
+            USER_NUM = 1 << USER_NUM_BIT
+            USER_CAP = 1 << USER_CAP_BIT
+
+    if remainder:
+        leds = kbleds.Leds(remainder[0])
+    else:
+        leds = kbleds.Leds()
+
+    if (opt_new_state == None and
+        (opt_numlock, opt_capslock, opt_scrolllock) != (None, None, None)):
+        # convert opt_*lock into opt_new_state
+        s = leds.state()
+        if opt_scrolllock != None:
+            s = (s & ~kbleds.LED_SCR) | (opt_scrolllock << kbleds.LED_SCR_BIT)
+        if opt_numlock != None:
+            s = (s & ~kbleds.LED_NUM) | (opt_numlock << kbleds.LED_NUM_BIT)
+        if opt_capslock != None:
+            s = (s & ~kbleds.LED_CAP) | (opt_capslock << kbleds.LED_CAP_BIT)
+        opt_new_state = s
+        opt_bit_order = "raw"
+
+    if opt_new_state != None:
+        if opt_bit_order != "raw":
+            s = opt_new_state
+            opt_new_state = (
+                (((s & USER_SCR) >> USER_SCR_BIT) << kbleds.LED_SCR_BIT)
+                + (((s & USER_NUM) >> USER_NUM_BIT) << kbleds.LED_NUM_BIT)
+                + (((s & USER_CAP) >> USER_CAP_BIT) << kbleds.LED_CAP_BIT))
+        leds.set_state(opt_new_state)
+
+    if opt_print_state:
+        state = leds.state()
+        if opt_human_readable:
+            str_state = (
+                "sS"[(state & kbleds.LED_SCR) >> kbleds.LED_SCR_BIT] +
+                "nN"[(state & kbleds.LED_NUM) >> kbleds.LED_NUM_BIT] +
+                "cC"[(state & kbleds.LED_NUM) >> kbleds.LED_NUM_BIT])
+        else:
+            if opt_bit_order != "raw":
+                state = (
+                    (((state & kbleds.LED_SCR) >> kbleds.LED_SCR_BIT)
+                     << USER_SCR_BIT) +
+                    (((state & kbleds.LED_NUM) >> kbleds.LED_NUM_BIT)
+                     << USER_NUM_BIT) +
+                    (((state & kbleds.LED_CAP) >> kbleds.LED_CAP_BIT)
+                     << USER_CAP_BIT))
+            str_state = str(state)
+        sys.stdout.write("%s\n" % (str_state,))
