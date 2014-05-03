@@ -1,0 +1,15 @@
+Source: kbleds
+Maintainer: Antti Kervinen <antti.kervinen@gmail.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 7.3.8), python (>= 2.6)
+X-Python-Version: >= 2.5
+
+Package: kbleds
+Architecture: any
+Depends: python
+Description: Keyboard LED (scroll/caps/num lock) library and executable
+ This package provides
+ - keyboard LED control API for Python (kbleds.py)
+ - command-line interface for controlling LEDs (kbleds)

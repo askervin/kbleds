@@ -1,0 +1,9 @@
+*~
+*.pyc
+*.log
+build/*
+dist/*
+debian/*debhelper*
+debian/files
+debian/*substvars
+debian/kbleds

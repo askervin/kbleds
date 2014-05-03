@@ -1,6 +1,26 @@
 #!/usr/bin/python2
 
-"""kbled - control keyboard leds
+# kbleds.py - library for controlling keyboard LEDs.
+#
+# Copyright (C) 2014 Antti Kervinen <antti.kervinen@gmail.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License
+# as published by the Free Software Foundation; either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+# Boston, MA 02110-1301 USA
+
+
+"""kbled - control keyboard LEDs
 """
 
 import array
@@ -31,8 +51,19 @@ class Leds(object):
             pass
 
     def state(self):
+        """returns keyboard LED state
+        """
         fcntl.ioctl(self._tty_fd, KDGETLED, self._buf, True)
         return ord(self._buf.tolist()[0])
 
     def set_state(self, state):
+        """set keyboard LED state
+
+        Parameters:
+          state (integer):
+                  three least significant bits of the integer
+                  (LED_SCR_BIT (LSB), LED_NUM_BIT, LED_CAP_BIT)
+                  define the state of scroll, num and caps lock
+                  LEDs.
+        """
         fcntl.ioctl(self._tty_fd, KDSETLED, state)
