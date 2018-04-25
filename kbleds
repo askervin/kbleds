@@ -59,6 +59,7 @@ Examples:
 """
 
 import getopt
+import glob
 import sys
 import time
 
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     opt_tty_dev = None
     opt_cmds = []
     opt_loop = None
-    leds = None
+    leds = []
 
     try:
         opts, remainder = getopt.getopt(
@@ -95,32 +96,35 @@ if __name__ == "__main__":
             print __doc__
             sys.exit(0)
         elif opt in ["-i", "--input"]:
-            leds = kbleds.Leds(input_device=arg)
+            leds.append(kbleds.Leds(input_device=arg))
         elif opt in ["-t", "--tty"]:
-            leds = kbleds.Leds(tty_device=arg)
+            leds.append(kbleds.Leds(tty_device=arg))
         elif opt in ["-h", "--human-readable"]:
             opt_print_state= True
             opt_human_readable = True
         elif opt in ["-l", "--leds"]:
             if not leds:
-                error('missing -i INPUT_DEV or -t TTY_DEV before -l LEDS')
+                for input_kbd in glob.glob("/dev/input/by-id/*event-kbd"):
+                    leds.append(kbleds.Leds(input_device=input_kbd))
+            if not leds:
+                error('keyboard devices not found, use -i INPUT_DEV or -t TTY_DEV')
             opt_print_state = False
             try:
                 opt_new_state = int(arg)
-                opt_cmds.append(lambda: leds.set_state(opt_new_state))
+                opt_cmds.append(lambda: [l.set_state(opt_new_state) for l in leds])
             except ValueError:
                 if "n" in arg:
-                    opt_cmds.append(lambda: leds.set_num(0))
+                    opt_cmds.append(lambda: [l.set_num(0) for l in leds])
                 if "N" in arg:
-                    opt_cmds.append(lambda: leds.set_num(1))
+                    opt_cmds.append(lambda: [l.set_num(1) for l in leds])
                 if "s" in arg:
-                    opt_cmds.append(lambda: leds.set_scroll(0))
+                    opt_cmds.append(lambda: [l.set_scroll(0) for l in leds])
                 if "S" in arg:
-                    opt_cmds.append(lambda: leds.set_scroll(1))
+                    opt_cmds.append(lambda: [l.set_scroll(1) for l in leds])
                 if "c" in arg:
-                    opt_cmds.append(lambda: leds.set_caps(0))
+                    opt_cmds.append(lambda: [l.set_caps(0) for l in leds])
                 if "C" in arg:
-                    opt_cmds.append(lambda: leds.set_caps(1))
+                    opt_cmds.append(lambda: [l.set_caps(1) for l in leds])
         elif opt in ["-w", "--wait"]:
             opt_cmds.append(
                 eval("lambda: time.sleep(%f)" % (float(arg),)))
